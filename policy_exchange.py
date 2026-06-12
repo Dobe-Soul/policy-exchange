@@ -28,7 +28,7 @@ VOLATILITY = {
     "MRIN": 0.005, "MOTO": 0.004, "CATA": 0.009,
 }
 MEAN_REVERSION = 0.015   # pull back toward base per tick
-TICK_INTERVAL  = 4       # seconds between price ticks
+TICK_INTERVAL  = 2       # seconds between price ticks
 
 # ── Shared game state ─────────────────────────────────────────────────────────
 state = {
