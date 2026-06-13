@@ -286,7 +286,7 @@ def render_trade(player, flash="", flash_type="err"):
     </div>
     <span class="badge badge-blue" style="white-space:nowrap;flex-shrink:0">{n['category']}</span>
   </div>
-  <div style="margin-top:7px;font-size:12px;color:var(--text3)">Impact: {impacts} &nbsp;·&nbsp; {n['released_at']}</div>
+  <div style="margin-top:7px;font-size:12px;color:var(--text3)">{n['released_at']}</div>
 </div>"""
     else:
         news_html = '<p style="color:var(--text3);font-size:14px;text-align:center;padding:20px 0">No news yet — stay tuned.</p>'
@@ -324,6 +324,17 @@ th{{text-align:left;padding:8px 12px;background:var(--bg3);color:var(--text3);fo
 td{{padding:9px 12px;border-bottom:1px solid var(--border)}}
 #toast{{position:fixed;bottom:20px;right:20px;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius);padding:11px 18px;font-size:14px;display:none;z-index:300;box-shadow:0 8px 32px rgba(0,0,0,.5);transition:opacity .3s}}
 .qty-input{{outline:none}}
+#newsModal{{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:500;backdrop-filter:blur(4px)}}
+#newsModal.show{{display:flex}}
+.nm-box{{background:var(--card2);border:2px solid var(--blue);border-radius:var(--radius-lg);max-width:520px;width:92%;padding:26px;animation:popIn .35s cubic-bezier(.34,1.56,.64,1);box-shadow:0 20px 60px rgba(0,0,0,.6)}}
+@keyframes popIn{{from{{transform:scale(.7);opacity:0}}to{{transform:scale(1);opacity:1}}}}
+.nm-badge{{display:inline-block;background:var(--red);color:#fff;font-size:11px;font-weight:700;letter-spacing:.1em;padding:4px 10px;border-radius:4px;margin-bottom:12px}}
+.nm-title{{font-size:22px;font-weight:700;margin-bottom:8px}}
+.nm-cat{{font-size:12px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px}}
+.nm-desc{{font-size:14px;color:var(--text2);line-height:1.55;margin-bottom:16px}}
+.nm-impacts{{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px}}
+.nm-imp{{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:6px 10px;font-size:13px;font-weight:600}}
+.nm-imp.up{{color:var(--green)}}.nm-imp.dn{{color:var(--red)}}
 </style>
 <div class="topbar">
   <div class="brand"><em>Policy</em>Exchange <span style="font-size:13px;color:var(--text3);font-weight:400">Trading Floor</span></div>
@@ -356,11 +367,21 @@ td{{padding:9px 12px;border-bottom:1px solid var(--border)}}
     </div>
   </div>
 </div>
+<div id="newsModal" onclick="closeNews(event)">
+  <div class="nm-box" onclick="event.stopPropagation()">
+    <div class="nm-badge">📢 BREAKING NEWS</div>
+    <div class="nm-cat" id="nm-cat"></div>
+    <div class="nm-title" id="nm-title"></div>
+    <div class="nm-desc" id="nm-desc"></div>
+    <button class="btn btn-primary" style="width:100%" onclick="closeNews()">Got it — back to trading</button>
+  </div>
+</div>
 <div id="toast"></div>
 <script>
 const PRICES_META = {json.dumps({t:{"base":p["base"],"name":p["name"],"color":p["color"]} for t,p in state["prices"].items()})};
 let priceHistory = {hist_json};
 let lastNewsCount = {len(state["news_feed"])};
+let newsFeedCache = {json.dumps(state["news_feed"])};
 
 // ── Sparkline renderer ────────────────────────────────────────────────────────
 function drawSpark(canvas, ticker, color) {{
@@ -468,8 +489,36 @@ async function refresh() {{
       return `<tr><td style="color:${{d.prices[t].color}};font-weight:600">${{t}}</td><td>${{PRICES_META[t].name}}</td><td>${{q}}</td><td>₹${{pr.toLocaleString('en-IN',{{minimumFractionDigits:2}})}}</td><td>₹${{val}}</td></tr>`;
     }}).join('');
   }}
-  // News
-  if (d.news_count !== lastNewsCount) {{ lastNewsCount = d.news_count; location.reload(); }}
+  // News popup
+  const feed = d.news_feed || [];
+  if (feed.length > lastNewsCount) {{
+    const latest = feed[feed.length - 1];
+    showNewsModal(latest);
+    lastNewsCount = feed.length;
+    newsFeedCache = feed;
+    setTimeout(() => location.reload(), 8000);
+  }}
+}}
+
+
+function showNewsModal(n) {{
+  document.getElementById('nm-cat').textContent = n.category || '';
+  document.getElementById('nm-title').textContent = n.title || '';
+  document.getElementById('nm-desc').textContent = n.description || '';
+  document.getElementById('newsModal').classList.add('show');
+  try {{
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.connect(g); g.connect(ctx.destination);
+    o.frequency.value = 880; g.gain.value = 0.08;
+    o.start(); o.frequency.exponentialRampToValueAtTime(440, ctx.currentTime+0.25);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+0.4);
+    o.stop(ctx.currentTime+0.4);
+  }} catch(e) {{}}
+}}
+function closeNews(e) {{
+  if (e && e.target.id !== 'newsModal' && e.type === 'click') {{}}
+  document.getElementById('newsModal').classList.remove('show');
 }}
 
 drawAllSparks();
@@ -805,7 +854,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     "portfolio_value": pv,
                     "portfolio": player["portfolio"],
                 },
-                "news_count": len(state["news_feed"]),
+                "news_feed": state["news_feed"],
             })
 
         elif path == "/api/admin_state":
