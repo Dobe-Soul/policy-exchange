@@ -1,7 +1,7 @@
 """
-Policy Exchange — The Insurance Trading Challenge
+Stock Exchange — The Ultimate Trading Challenge
 =================================================
-Run:   python policy_exchange.py
+Run:   python stock_exchange.py
 Open:  http://localhost:8080          ← Player view
 Admin: http://localhost:8080/admin    ← Admin panel  (password: admin123)
 
@@ -24,8 +24,10 @@ ADMIN_PASSWORD = "admin123"
 # ── Price volatility config ───────────────────────────────────────────────────
 # Each ticker gets its own volatility (% max drift per tick) and mean-reversion strength
 VOLATILITY = {
-    "HLTH": 0.004, "LIFE": 0.003, "PROP": 0.006,
-    "MRIN": 0.005, "MOTO": 0.004, "CATA": 0.009,
+    "SREN": 0.004, "CB": 0.003, "ALV": 0.006,
+    "GS": 0.005, "MRSH": 0.004, "BAH": 0.009,
+    "JPM": 0.002, "MS": 0.007, "ACN": 0.008,
+    "IFC": 0.005, "HSBC": 0.004, "MUVGn": 0.006,
 }
 MEAN_REVERSION = 0.015   # pull back toward base per tick
 TICK_INTERVAL  = 2       # seconds between price ticks
@@ -38,50 +40,68 @@ state = {
     "news_feed":     [],
     "price_history": {},       # ticker → list of (timestamp_str, price)  (last 30 ticks)
     "prices": {
-        "HLTH": {"name": "Individual Health Cover", "base": 420, "current": 420, "color": "#3b82f6"},
-        "LIFE": {"name": "Term Life Insurance",     "base": 310, "current": 310, "color": "#22c55e"},
-        "PROP": {"name": "Home & Contents",         "base": 540, "current": 540, "color": "#f97316"},
-        "MRIN": {"name": "Cargo Transit Policy",    "base": 280, "current": 280, "color": "#a855f7"},
-        "MOTO": {"name": "Comprehensive Auto",      "base": 190, "current": 190, "color": "#eab308"},
-        "CATA": {"name": "Flood Reinsurance",       "base": 650, "current": 650, "color": "#ef4444"},
+        "SREN": {"name": "Swiss Re Group", "base": 145, "current": 145, "color": "#3b82f6"},
+        "CB": {"name": "Chubb", "base": 309, "current": 309, "color": "#22c55e"},
+        "ALV": {"name": "Allianz", "base": 113, "current": 113, "color": "#f97316"},
+        "GS": {"name": "Goldman Sachs", "base": 1053, "current": 1053, "color": "#a855f7"},
+        "MRSH": {"name": "Marsh McLennan", "base": 157, "current": 157, "color": "#eab308"},
+        "BAH": {"name": "Booz Allen Hamilton", "base": 69, "current": 69, "color": "#ef4444"},
+        "JPM": {"name": "JP Morgan", "base": 317, "current": 317, "color": "#42f9f9"},
+        "MS": {"name": "Morgan Stanley", "base": 214, "current": 214, "color": "#ef2864"},
+        "ACN": {"name": "Accenture", "base": 154, "current": 154, "color": "#a30542"},
+        "IFC": {"name": "Intact Financial Corporation", "base": 187, "current": 187, "color": "#bee610"},
+        "HSBC": {"name": "The Hongkong and Shanghai Banking Corporation", "base": 90, "current": 90, "color": "#70b0e0"},
+        "MUVGn": {"name": "Munich Re", "base": 502, "current": 502, "color": "#d15536"},
     },
     "news_pool": [
-        {"id":"N01","title":"Cyclone Alert — Eastern Coast","category":"Natural Disaster",
-         "description":"Category 3 cyclone expected to make landfall within 48 hours. Coastal districts on high alert.",
-         "impacts":{"MRIN":+22,"PROP":+18,"CATA":+30}},
-        {"id":"N02","title":"IRDAI Imposes Premium Cap","category":"Regulatory Change",
-         "description":"New IRDAI directive caps annual premium hikes at 5% across health and life segments.",
-         "impacts":{"HLTH":-12,"LIFE":-10}},
-        {"id":"N03","title":"Aging Population Report Released","category":"Demographic Shift",
-         "description":"Census data reveals 1 in 5 Indians will be over 60 by 2035, driving demand for health and life cover.",
-         "impacts":{"HLTH":+10,"LIFE":+8}},
-        {"id":"N04","title":"GDP Growth Revised to 7.8%","category":"Economic Signal",
-         "description":"Higher disposable incomes fuel vehicle purchases and trade volumes, boosting motor and marine premiums.",
-         "impacts":{"MOTO":+7,"MRIN":+6}},
-        {"id":"N05","title":"Urban Flood Risk Reclassification","category":"Regulatory Change",
-         "description":"Government reclassifies 42 cities into high flood-risk zones. Mandatory flood cover expected.",
-         "impacts":{"PROP":+14,"CATA":+20}},
-        {"id":"N06","title":"Tech IPO Boom — D&O Liability Spike","category":"Market Event",
-         "description":"Wave of tech IPOs increases demand for Directors & Officers liability cover across all segments.",
-         "impacts":{"HLTH":+4,"LIFE":+3,"PROP":+5,"MOTO":+3,"MRIN":+4,"CATA":+4}},
-        {"id":"N07","title":"Monsoon Deficit 40% Below Normal","category":"Natural Disaster",
-         "description":"Drought conditions declared in 8 states. Agricultural and property losses mount.",
-         "impacts":{"PROP":-8,"CATA":-5,"MRIN":-4}},
-        {"id":"N08","title":"Road Safety Bill Passes Parliament","category":"Regulatory Change",
-         "description":"Stricter road safety norms reduce accident rates. Motor insurance claims expected to fall.",
-         "impacts":{"MOTO":-11}},
-        {"id":"N09","title":"Pandemic Preparedness Fund Announced","category":"Policy Change",
-         "description":"Government mandates group health cover for all firms with 10+ employees.",
-         "impacts":{"HLTH":+18}},
-        {"id":"N10","title":"Shipping Lane Disruptions in Gulf","category":"Geopolitical",
-         "description":"Tensions in the Gulf of Aden disrupt global shipping, raising marine cargo risk.",
-         "impacts":{"MRIN":+25}},
-        {"id":"N11","title":"Electric Vehicle Adoption Surges","category":"Technology Shift",
-         "description":"EV adoption hits 15% of new car sales. Motor insurers revise risk models downward.",
-         "impacts":{"MOTO":-6}},
-        {"id":"N12","title":"Supreme Court Raises Motor Liability Limits","category":"Legal",
-         "description":"Landmark ruling increases mandatory third-party motor liability payouts by 40%.",
-         "impacts":{"MOTO":+16}},
+        {"id":"N01","title":"Climate Catastrophe Alert","category":"Natural Disaster",
+         "description":"Global reinsurers warn that insured losses from natural catastrophes could exceed $150 billion this year as hurricanes and floods become more frequent.",
+         "impacts":{"SREN":-8,"MUVGn":-8,"CB":-5,"IFC":-6,"ALV":-3}},
+        {"id":"N02","title":"Underwriting Excellence","category":"Earnings Report",
+         "description":"A leading insurer reports a sharp rise in quarterly profits after maintaining one of the industry's best combined ratios and disciplined underwriting standards.",
+         "impacts":{"CB":+10,"ALV":+3,"IFC":+2,"SREN":+1,"MUVGn":+1}},
+        {"id":"N03","title":"Strategic Divestment Pays Off","category":"Corporate Action",
+         "description":"A European financial services giant records a significant profit boost after divesting a stake in one of its Asian insurance ventures.",
+         "impacts":{"ALV":+9,"HSBC":+2,"ACN":+1}},
+        {"id":"N04","title":"Dealmaking Revival","category":"Banking",
+         "description":"Central banks signal interest rates may remain elevated for longer, while mergers and acquisitions activity rebounds globally.",
+         "impacts":{"GS":+8,"JPM":+7,"MS":+7,"HSBC":+5,"ACN":+2}},
+        {"id":"N05","title":"Cyber Threat Escalation","category":"Cybersecurity",
+         "description":"A wave of sophisticated cyberattacks on multinational corporations leads businesses to dramatically increase spending on cyber risk advisory and insurance services.",
+         "impacts":{"MRSH":+10,"ACN":+6,"BAH":+4,"CB":3,"ALV":+2}},
+        {"id":"N06","title":"Regulatory Crackdown","category":"Regulation",
+         "description":"Regulators launch an investigation into audit quality and consulting independence across several major professional services firms.",
+         "impacts":{"BAH":-10,"ACN":-3,"MRSH":-2}},
+        {"id":"N07","title":"Trading Boom","category":"Financial Markets",
+         "description":"One of the world's largest banks reports record trading revenues as market volatility drives increased client activity.",
+         "impacts":{"JPM":+9,"GS":+8,"MS":+7,"HSBC":+3}},
+        {"id":"N08","title":"Wealth Surge","category":"Wealth Management",
+         "description":"Global wealth creation reaches an all-time high, pushing assets under management at major wealth-management firms to record levels.",
+         "impacts":{"MS":+10,"JPM":5,"HSBC":4,"GS":3}},
+        {"id":"N09","title":"AI Spending Frenzy","category":"Technology",
+         "description":"Governments and Fortune 500 companies announce billions of dollars in spending on artificial intelligence transformation and cloud modernization projects.",
+         "impacts":{"ACN":+10,"BAH":5,"MRSH":2,"JPM":1}},
+        {"id":"N10","title":"Wildfire Crisis","category":"Natural Disaster",
+         "description":"An unusually severe wildfire season causes insured losses across several provinces, leading analysts to revise claim estimates upward.",
+         "impacts":{"IFC":-10,"CB":-6,"ALV":-4,"SREN":-3,"MUVGn":-3}},
+        {"id":"N11","title":"Capital Strength Recorded","category":"Corporate Finance",
+         "description":"A major international bank unveils a multi-billion-dollar share buyback after exceeding capital adequacy requirements.",
+         "impacts":{"HSBC":+9,"JPM":+3,"MS":+2,"GS":+2}},
+        {"id":"N12","title":"Reinsurance Price Surge","category":"Insurance Market",
+         "description":"Property and casualty reinsurance rates rise sharply during annual renewals as insurers seek protection against increasing catastrophe losses.",
+         "impacts":{"MUVGn":+10,"SREN":+10,"CB":-3,"IFC":-4,"ALV":-2}},
+        {"id":"N13","title":"Asian Growth Opportunity","category":"Emerging Markets",
+         "description":"A rapidly growing middle class in Asia drives strong demand for life insurance and retirement planning products.",
+         "impacts":{"ALV":+8,"HSBC":+7,"MRSH":+2}},
+        {"id":"N14","title":"Mega Brokerage Deal","category":"Brokerage",
+         "description":"Several large corporations consolidate their insurance brokerage relationships under a single global risk advisory provider.",
+         "impacts":{"MRSH":+10,"CB":2,"ALV":+2}},
+        {"id":"N15","title":"Banking Rules Relaxed","category":"Regulation",
+         "description":"Financial regulators ease restrictions on investment banking activities to stimulate economic growth.",
+         "impacts":{"GS":+10,"MS":+8,"JPM":+7,"HSBC":+3}},
+        {"id":"N16","title":"IPO Freeze","category":"Economic Slowdown",
+         "description":"Economic uncertainty causes corporations to delay acquisitions and public listings worldwide.",
+         "impacts":{"GS":-10,"MS":-8,"JPM":-6,"HSBC":-2}},
     ],
     "lock": threading.Lock()
 }
@@ -195,7 +215,7 @@ input,select{font-family:inherit}
 def page(title, body):
     return f"""<!DOCTYPE html><html lang="en"><head>
 <meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>{title} — Policy Exchange</title>
+<title>{title} — Stock Exchange</title>
 <style>{COMMON_CSS}</style>
 </head><body>{body}</body></html>"""
 
@@ -219,8 +239,8 @@ body{{display:flex;align-items:center;justify-content:center;min-height:100vh;pa
 .field input:focus{{border-color:var(--blue)}}
 </style>
 <div class="wrap">
-  <div class="logo"><em>Policy</em>Exchange</div>
-  <div class="sub">The Insurance Trading Challenge</div>
+  <div class="logo"><em>Stock</em>Exchange</div>
+  <div class="sub">The Ultimate Trading Challenge</div>
   <div style="text-align:center;margin-bottom:24px">{badge}</div>
   {fh}
   <div class="card">
@@ -337,7 +357,7 @@ td{{padding:9px 12px;border-bottom:1px solid var(--border)}}
 .nm-imp.up{{color:var(--green)}}.nm-imp.dn{{color:var(--red)}}
 </style>
 <div class="topbar">
-  <div class="brand"><em>Policy</em>Exchange <span style="font-size:13px;color:var(--text3);font-weight:400">Trading Floor</span></div>
+  <div class="brand"><em>Stock</em>Exchange <span style="font-size:13px;color:var(--text3);font-weight:400">Trading Floor</span></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <div class="pill">👤 {player['name']}</div>
     <div class="pill">🏷 {player['team']}</div>
@@ -350,12 +370,12 @@ td{{padding:9px 12px;border-bottom:1px solid var(--border)}}
 <div class="main">
   <div>
     {game_banner}
-    <div class="label" style="margin-bottom:14px">Insurance Policy Market</div>
+    <div class="label" style="margin-bottom:14px">Stock Exchange Market</div>
     <div class="p-grid">{price_cards}</div>
     <div class="card" style="margin-top:20px;padding:0;overflow:hidden">
       <div class="label" style="padding:14px 16px 10px">My Portfolio</div>
       <table>
-        <thead><tr><th>Ticker</th><th>Policy</th><th>Qty</th><th>Price</th><th>Value</th></tr></thead>
+        <thead><tr><th>Ticker</th><th>Stock</th><th>Qty</th><th>Price</th><th>Value</th></tr></thead>
         <tbody id="port-body">{port_rows}</tbody>
       </table>
     </div>
@@ -620,7 +640,7 @@ td{{padding:10px 14px;border-bottom:1px solid var(--border)}}
 .danger-zone p{{font-size:13px;color:var(--text2);margin-bottom:14px}}
 </style>
 <div class="topbar">
-  <div class="brand"><em>Policy</em>Exchange &nbsp;<span style="font-size:13px;color:var(--gold);font-weight:500">⚡ Admin</span></div>
+  <div class="brand"><em>Stock</em>Exchange &nbsp;<span style="font-size:13px;color:var(--gold);font-weight:500">⚡ Admin</span></div>
   <div style="display:flex;gap:10px;align-items:center">
     {game_badge}
     <a href="/" class="btn btn-ghost btn-sm" target="_blank">↗ Player view</a>
@@ -667,7 +687,7 @@ td{{padding:10px 14px;border-bottom:1px solid var(--border)}}
   <div class="sec-title">💹 Live Prices</div>
   <div class="card" style="padding:0;overflow:hidden;margin-bottom:28px">
     <table>
-      <thead><tr><th>Ticker</th><th>Policy</th><th>Base</th><th>Current</th><th>Change</th><th>Trend</th></tr></thead>
+      <thead><tr><th>Ticker</th><th>Stock</th><th>Base</th><th>Current</th><th>Change</th><th>Trend</th></tr></thead>
       <tbody id="adm-prices">{price_rows}</tbody>
     </table>
   </div>
@@ -767,7 +787,7 @@ body{{display:flex;align-items:center;justify-content:center;min-height:100vh;pa
 </style>
 <div class="wrap">
   <div class="logo"><em>⚡ Admin</em> Login</div>
-  <div class="sub">Policy Exchange — Control Panel</div>
+  <div class="sub">Stock Exchange — Control Panel</div>
   {fh}
   <div class="card">
     <form method="POST" action="/admin/login">
@@ -1023,7 +1043,7 @@ def main():
         base = f"http://localhost:{PORT}"
         print(f"""
 ╔══════════════════════════════════════════════════╗
-║       POLICY EXCHANGE — Insurance Trading        ║
+║  STOCK EXCHANGE - THE ULTIMATE TRADING CHALLENGE ║
 ╠══════════════════════════════════════════════════╣
 ║  Player URL :  {base:<33} ║
 ║  Admin URL  :  {(base+'/admin'):<33} ║
